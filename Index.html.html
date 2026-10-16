@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apo Port Flow Control - SPOMS Enterprise</title>
+<!-- SheetJS for Excel Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- jsPDF for PDF Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<!-- html2canvas for card image download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --warn: #f59e0b;
+  --warn-bg: #fffbeb;
+  --blue: #2563eb;
+  --green: #10b981;
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --sidebar-text: #94a3b8;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:260px;
+  background: var(--sidebar-bg);
+  color:#fff;
+  padding:24px 16px;
+  display:flex;
+  flex-direction:column;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.04);
+}
+.brand{
+  font-size:20px;
+  font-weight:800;
+  padding:8px 12px 24px;
+  letter-spacing: -0.5px;
+  color: #f8fafc;
+}
+.brand small{
+  display:block;
+  color: var(--sidebar-text);
+  font-size:11px;
+  margin-top:6px;
+  font-weight:600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.nav button{
+  width:100%;
+  background:none;
+  border:0;
+  color: var(--sidebar-text);
+  text-align:left;
+  padding:12px 14px;
+  border-radius:10px;
+  font-size:14px;
+  font-weight: 500;
+  cursor:pointer;
+  margin:4px 0;
+  transition: all 0.2s ease;
+}
+.nav button.active, .nav button:hover{
+  background: var(--sidebar-hover);
+  color:#fff;
+  font-weight: 600;
+}
+.sidefoot{margin-top:auto; color:var(--sidebar-text); font-size:12px; padding:12px; border-top: 1px solid rgba(255,255,255,0.06)}
+.main{flex:1;padding:32px;max-width:1600px;margin:auto;width:100%}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.topbar h1{margin:0;font-size:28px; font-weight: 800; letter-spacing: -0.5px; color: var(--text)}
+.topbar p{margin:6px 0 0;color:var(--muted);font-size:13px; font-weight: 500;}
+.btn{border:0;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700;font-size:12px; transition: all 0.2s ease; display:inline-flex; align-items:center; gap:6px;}
+.primary{background:var(--accent);color:#fff; box-shadow: 0 4px 12px rgba(37,99,235,0.2)}
+.primary:hover{background:var(--accent-hover)}
+.secondary{background:#fff;border:1px solid var(--line);color:var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.02)}
+.secondary:hover{background: #f8fafc; border-color: #cbd5e1;}
+.danger{background:var(--danger-bg);color:var(--danger); border: 1px solid #fecaca;}
+.danger:hover{background: #fee2e2;}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px; box-shadow: 0 2px 8px rgba(15,23,42,0.02); transition: all 0.2s ease;}
+.analytics-kpi{cursor:pointer}
+.analytics-kpi:hover, .kpi-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(15,23,42,0.08)}
+.analytics-kpi:active, .kpi-card:active{transform:scale(.98)}
+.kpi-card{cursor:pointer; user-select: none;}
+.kpi-card.active{border:2px solid var(--accent); background: #eff6ff;}
+.kpi-label{font-size:12px;color:var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+.kpi-value{font-size:30px;font-weight:800;margin-top:8px; color: var(--text); letter-spacing: -1px;}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px; box-shadow: 0 2px 12px rgba(15,23,42,0.03)}
+.panel h2{font-size:17px;margin:0 0 16px; font-weight: 700; letter-spacing: -0.2px;}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.input,.select{padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px; color: var(--text); outline: none; transition: border-color 0.2s;}
+.input:focus, .select:focus{border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1);}
+.input{flex:1;min-width:180px}
+.tablewrap{overflow:auto}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;color:var(--muted);font-weight:700;border-bottom:2px solid var(--line);padding:12px 10px;white-space:nowrap; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;}
+.table td{border-bottom:1px solid #f1f5f9;padding:12px 10px;white-space:nowrap; color: var(--text);}
+.status{display:inline-flex;padding:5px 10px;border-radius:999px;font-weight:700;font-size:11px; letter-spacing: 0.3px;}
+.s-goating{background:#fef3c7;color:#92400e}
+.s-berth{background:#dbeafe;color:#1e40af}
+.s-completed{background:#d1fae5;color:#065f46}
+.s-created{background:#f1f5f9;color:#475569}
+.alert{color:var(--danger);font-weight:800}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px;z-index:99}
+.modal.show{display:flex!important}
+.modalbox{background:#fff;border-radius:20px;width:min(600px,100%);padding:28px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);}
+@keyframes modalIn { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modalbox h2{margin-top:0; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+.field input,.field select{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px; font-size: 13px; outline: none;}
+.field input:focus, .field select:focus{border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1);}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.empty{padding:36px;text-align:center;color:var(--muted); font-size: 13px;}
+.chartbox{height:320px;position:relative}
+.chart-clickable{cursor:pointer}
+.analytics-clickable{cursor:pointer;transition:.15s}
+.analytics-clickable:hover{background:#f8fafc}
+.kpi-hint{font-size:11px;color:var(--muted);margin-top:10px; font-weight: 500;}
+.analytics-stage-card{cursor:pointer;transition:.15s}
+.analytics-stage-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(15,23,42,0.06)}
+.chart-clickable:hover{outline:2px solid var(--accent);border-radius:12px}
+.chartbox canvas{width:100%;height:100%}
+.wide{grid-column:1/-1}
+.detail-table td,.detail-table th{white-space:nowrap}
+.view{display:none}
+.view.active{display:block}
+.mobile-actions{display:none}
+
+.row-danger { background-color: var(--danger-bg) !important; }
+.row-danger:hover { background-color: #ffeeec !important; }
+.badge-danger { background-color: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; display: inline-block; margin-left: 8px; }
+.badge-warning { background-color: #fef3c7; color: #b45309; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; display: inline-block; margin-left: 8px; }
+
+/* Action Button Timestamp Controls Styling */
+.action-btn-group { display: flex; align-items: center; gap: 4px; }
+.action-stage-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 4px; text-transform: uppercase; }
+
+/* Redesigned View Details Button */
+.btn-view-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-view-details:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+.btn-view-details:active {
+  transform: translateY(0);
+}
+
+/* Replica Widget Style */
+.replica-widget-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(15,23,42,0.03);
+  position: relative;
+}
+.replica-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.replica-title-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.replica-icon-box {
+  width: 48px;
+  height: 48px;
+  background: #eff6ff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+.replica-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+.replica-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 3px;
+  font-weight: 500;
+}
+.replica-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.replica-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.replica-meta-icon {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+.replica-meta-label {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.replica-meta-val {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 14px;
+  margin-top: 1px;
+}
+
+.replica-total-badge {
+  background: #eff6ff;
+  border-radius: 12px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.replica-total-icon {
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+}
+.replica-total-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: #2563eb;
+  line-height: 1;
+}
+.replica-total-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Tier Card Exact Styling */
+.tier-card {
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+}
+.tier-green { background: #f0fdf4; border-color: #dcfce7; }
+.tier-yellow { background: #fffbeb; border-color: #fef3c7; }
+.tier-orange { background: #fff7ed; border-color: #ffedd5; }
+.tier-red { background: #fef2f2; border-color: #fee2e2; }
+
+.tier-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tier-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tier-dot-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.tier-green .tier-dot-icon { background: #10b981; }
+.tier-yellow .tier-dot-icon { background: #f59e0b; }
+.tier-orange .tier-dot-icon { background: #f97316; }
+.tier-red .tier-dot-icon { background: #ef4444; }
+
+.tier-title { font-size: 16px; font-weight: 800; margin: 0; }
+.tier-green .tier-title { color: #047857; }
+.tier-yellow .tier-title { color: #b45309; }
+.tier-orange .tier-title { color: #c2410c; }
+.tier-red .tier-title { color: #b91c1c; }
+
+.tier-desc { font-size: 13px; color: #64748b; margin: 2px 0 0 0; font-weight: 500; }
+
+.tier-badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tier-green .tier-badge { background: #dcfce7; color: #047857; }
+.tier-yellow .tier-badge { background: #fef3c7; color: #b45309; }
+.tier-orange .tier-badge { background: #ffedd5; color: #c2410c; }
+.tier-red .tier-badge { background: #fee2e2; color: #b91c1c; }
+
+.tier-sub-list {
+  margin-top: 14px;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tier-sub-row {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tier-sub-plate {
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
+}
+.tier-sub-hauler { font-size: 12px; color: #64748b; font-weight: 600; margin-top: 2px; }
+.priority-tag {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px; }
+.insight-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; position: relative; box-shadow: 0 4px 16px rgba(15,23,42,0.03); }
+.insight-card h3 { margin: 0 0 10px 0; font-size: 15px; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.insight-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.insight-metric { font-size: 26px; font-weight: 800; color: var(--text); margin: 12px 0 6px 0; letter-spacing: -0.5px; }
+
+.alert-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 16px; }
+.alert-card-item { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(15,23,42,0.04); position: relative; }
+.alert-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.alert-level-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.alert-level-badge.high { color: var(--danger); }
+.alert-level-badge.warning { color: var(--warn); }
+.alert-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.alert-dot.high { background: var(--danger); }
+.alert-dot.warning { background: var(--warn); }
+.alert-copy-btn { background: #f8fafc; border: 1px solid var(--line); cursor: pointer; color: var(--text); padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: all 0.2s;}
+.alert-copy-btn:hover { background: #e2e8f0; }
+.alert-field-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; font-weight: 600; }
+.alert-field-value { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
+.alert-edit-reason-btn { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; color: var(--accent); margin-top: 12px; font-weight: 600; transition: background 0.2s; }
+.alert-edit-reason-btn:hover { background: #eff6ff; }
+
+.supervisor-dashboard-container { max-width: 500px; margin: 0 auto; }
+.supervisor-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 28px; box-shadow: 0 10px 30px rgba(15,23,42,0.06); position: relative; }
+.supervisor-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.supervisor-card-title { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+.supervisor-copy-btn { background: none; border: none; cursor: pointer; color: var(--text); padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+.supervisor-copy-btn:hover { background: #f1f5f9; }
+.supervisor-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px; }
+.supervisor-row-label { display: flex; align-items: center; gap: 12px; color: var(--text); font-weight: 500; }
+.supervisor-row-value { font-weight: 700; color: var(--text); }
+.supervisor-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.supervisor-dot.truck { background: #f59e0b; }
+.supervisor-dot.goating { background: #10b981; }
+.supervisor-dot.berth { background: #eab308; }
+.supervisor-dot.completed { background: #475569; }
+.supervisor-divider { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+.supervisor-stat-block { padding: 4px 0; }
+.supervisor-stat-title { font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+.supervisor-stat-val { font-size: 18px; font-weight: 800; color: var(--text); }
+.supervisor-link-value { color: var(--accent); cursor: pointer; text-decoration: underline; }
+.supervisor-link-value:hover { opacity: 0.8; }
+
+.duty-card { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px 26px; margin-bottom: 24px; position: relative; box-shadow: 0 10px 25px rgba(15,23,42,0.15); }
+.duty-card-header { font-weight: 800; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 10px; margin-bottom: 14px; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+.duty-line { font-size: 13px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+.duty-label { color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.duty-val { font-weight: 700; font-size: 14px; color: #fff; }
+.duty-divider { border-bottom: 1px solid rgba(255,255,255,0.15); margin-top: 14px; }
+
+/* Custom Excel Sheet Replica Style */
+.excel-table-container { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(15,23,42,0.03); margin-top: 24px; }
+.excel-table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.excel-table-wrapper { overflow-x: auto; max-height: 600px; border: 1px solid #cbd5e1; }
+.replica-table { width: 100%; border-collapse: collapse; font-family: Calibri, Arial, sans-serif; font-size: 13px; white-space: nowrap; background: #fff; }
+.replica-table th { background: #2563eb; color: #ffffff; font-weight: bold; text-align: center; padding: 10px 12px; border: 1px solid #94a3b8; text-transform: none; font-size: 13px; }
+.replica-table td { border: 1px solid #cbd5e1; padding: 8px 12px; color: #000; text-align: center; }
+.replica-table td:nth-child(2), .replica-table td:nth-child(3), .replica-table td:nth-child(9) { text-align: left; }
+.cell-green-light { background-color: #d1fae5; color: #065f46; font-weight: 600; }
+.cell-green-deep { background-color: #a7f3d0; color: #047857; font-weight: 600; }
+.cell-yellow { background-color: #fef3c7; color: #92400e; font-weight: 600; }
+.cell-orange { background-color: #fed7aa; color: #c2410c; font-weight: 600; }
+.cell-red { background-color: #fee2e2; color: #b91c1c; font-weight: 700; }
+
+@media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.sidebar{width:220px}}
+@media(max-width:700px){.app{display:block}.sidebar{width:100%;padding:12px;position:sticky;top:0;z-index:3}.brand{padding:8px 10px}.nav{display:flex;overflow:auto;gap:6px}.nav button{white-space:nowrap;width:auto}.sidefoot{display:none}.main{padding:16px}.cards{grid-template-columns:repeat(2,1fr)}.topbar{align-items:flex-start;gap:10px}.topbar h1{font-size:22px}.formgrid{grid-template-columns:1fr}.mobile-actions{display:block}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">APO PORT FLOW<small>Truck Movement Control</small></div>
+  <nav class="nav">
+    <button class="active" data-view="dashboard">▦ Dashboard</button>
+    <button data-view="supervisor">📊 Dashboard (Supervisor)</button>
+    <button data-view="insights">💡 Smart Insights</button>
+    <button data-view="alerts">🚨 Alert Center</button>
+    <button data-view="trips">🚛 Trips</button>
+    <button data-view="events">◷ Event Log</button>
+    <button data-view="analytics">▥ Analytics</button>
+    <button data-view="masters">⚙ Master Data</button>
+  </nav>
+  <div class="sidefoot">Prototype • Local Browser Mode</div>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div><div id="pageTitle"><h1>Live Operations</h1><p id="today"></p></div></div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn primary" id="newTripBtn">＋ New Trip</button>
+    </div>
+  </div>
+
+  <section id="dashboard" class="view active">
+    <div class="duty-card">
+      <div class="duty-card-header">
+        <span>🚢 SPOMS ENTERPRISE <br><small style="font-weight: normal; color: #94a3b8;">Smart Port Operations Management System</small></span>
+      </div>
+      <div class="duty-line"><span class="duty-label">Date & Time:</span> <span id="dutyClock" class="duty-val">—</span></div>
+      <div class="duty-line"><span class="duty-label">TA On Duty:</span> <span id="dutyTA" class="duty-val">Geo</span></div>
+      <div class="duty-line"><span class="duty-label">Shift:</span> <span id="dutyShift" class="duty-val">1st</span></div>
+      <div class="duty-divider"></div>
+    </div>
+
+    <!-- Top KPI Cards -->
+    <div class="cards">
+      <div class="card kpi-card active" data-kpifilter="ALL">
+        <div class="kpi-label">Total Active/Unfinished Trips</div>
+        <div class="kpi-value" id="kTotal">0</div>
+      </div>
+      <div class="card kpi-card" data-kpifilter="WAITING FOR BERTH">
+        <div class="kpi-label">At Goating</div>
+        <div class="kpi-value" id="kGoating">0</div>
+      </div>
+      <div class="card kpi-card" data-kpifilter="WAITING FOR UNLOADING">
+        <div class="kpi-label">At Berth</div>
+        <div class="kpi-value" id="kBerth">0</div>
+      </div>
+      <div class="card kpi-card" data-kpifilter="COMPLETED">
+        <div class="kpi-label">Completed (Today)</div>
+        <div class="kpi-value" id="kDone">0</div>
+      </div>
+    </div>
+    
+    <div class="grid">
+      <div class="panel">
+        <h2>Live Truck Status & Timestamps Control</h2>
+        <div class="toolbar">
+          <input class="input" id="dashSearch" placeholder="Search plate, hauler...">
+          <select class="select" id="dashFilter">
+            <option value="ALL">All active / pending</option>
+            <option value="NOT STARTED">Registered / Pending Goating</option>
+            <option value="WAITING FOR BERTH">At Goating</option>
+            <option value="WAITING FOR UNLOADING">At Berth</option>
+            <option value="COMPLETED">Completed Today</option>
+          </select>
+        </div>
+        <div class="tablewrap"><table class="table"><thead><tr><th>Plate</th><th>Hauler</th><th>Status</th><th>Stage Time</th><th>Stage Actions (Now / Manual)</th></tr></thead><tbody id="liveBody"></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Today's Performance</h2>
+        <div id="metrics"></div>
+        
+        <!-- Trucks Waiting Time Summary Widget -->
+        <div id="waitingTimeSummaryWidget" style="margin-top:24px;"></div>
+
+        <h2 style="margin-top:24px">Exceptions</h2>
+        <div id="exceptions"></div>
+      </div>
+    </div>
+
+    <!-- Integrated Excel Replica Table Section -->
+    <div class="excel-table-container">
+      <div class="excel-table-header">
+        <h2>Daily Operations Log Sheet (Excel Replica)</h2>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn primary" id="downloadExcelBtn">📥 Download Excel</button>
+          <button class="btn secondary" id="downloadPdfBtn">📄 Download PDF</button>
+        </div>
+      </div>
+      <div class="excel-table-wrapper">
+        <table class="replica-table" id="replicaTable">
+          <thead>
+            <tr>
+              <th>DATE</th>
+              <th>PLATE NO</th>
+              <th>ITEM</th>
+              <th>ARRIVAL AT GOATING</th>
+              <th>ARRIVAL AT BERTH</th>
+              <th style="background:#eab308; color:#000;">WAITING TIME</th>
+              <th>DONE UNLOADING</th>
+              <th style="background:#eab308; color:#000;">UNLOADING TIME</th>
+              <th>REMARKS</th>
+            </tr>
+          </thead>
+          <tbody id="replicaTableBody">
+            <!-- Dynamic Data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Supervisor Dashboard View -->
+  <section id="supervisor" class="view">
+    <div class="supervisor-dashboard-container">
+      <div class="supervisor-card">
+        <div class="supervisor-card-header">
+          <span class="supervisor-card-title">Live System Operations</span>
+          <button class="supervisor-copy-btn" id="copySupervisorCardBtn" title="Copy operations summary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+        
+        <div class="supervisor-row">
+          <span class="supervisor-row-label"><span class="supervisor-dot truck"></span> Active Unfinished Trips</span>
+          <span class="supervisor-row-value" id="supActiveTrips">0</span>
+        </div>
+        <div class="supervisor-row">
+          <span class="supervisor-row-label"><span class="supervisor-dot goating"></span> Goating</span>
+          <span class="supervisor-row-value" id="supGoating">0</span>
+        </div>
+        <div class="supervisor-row">
+          <span class="supervisor-row-label"><span class="supervisor-dot berth"></span> Berth</span>
+          <span class="supervisor-row-value" id="supBerth">0</span>
+        </div>
+        <div class="supervisor-row">
+          <span class="supervisor-row-label"><span class="supervisor-dot completed"></span> Completed (Today)</span>
+          <span class="supervisor-row-value" id="supCompleted">0</span>
+        </div>
+
+        <hr class="supervisor-divider">
+
+        <div class="supervisor-stat-block">
+          <div class="supervisor-stat-title">Average Turnaround (Today)</div>
+          <div class="supervisor-stat-val" id="supAvgTurnaround">0 mins</div>
+        </div>
+
+        <hr class="supervisor-divider">
+
+        <div class="supervisor-stat-block">
+          <div class="supervisor-stat-title">Delayed Trips (Total System)</div>
+          <div class="supervisor-stat-val supervisor-link-value" id="supDelayedTrips">0</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Smart Insights View -->
+  <section id="insights" class="view">
+    <div class="panel">
+      <h2>💡 AI Smart Port Insights & Recommendations</h2>
+      <p style="font-size:13px; color:var(--muted); margin-top:-6px; margin-bottom:20px;">Automated diagnostics assessing operational flow, structural bottlenecks, and throughput efficiency.</p>
+      <div id="smartInsightsContainer" class="insights-grid"></div>
+    </div>
+  </section>
+
+  <section id="alerts" class="view">
+    <div class="panel">
+      <h2>🚨 Alert Center — Active Port Exceptions</h2>
+      <p style="font-size:13px; color:var(--muted); margin-top:-6px; margin-bottom:16px;">Real-time detection of delays, slow unloading processes, and operational bottlenecks across shifts.</p>
+      <div id="alertCenterContainer" class="alert-card-grid"></div>
+    </div>
+  </section>
+
+  <section id="trips" class="view">
+    <div class="panel">
+      <h2>Trip Records</h2>
+      <div class="toolbar">
+        <input class="input" id="tripSearch" placeholder="Search plate, hauler...">
+        <select class="select" id="tripStatus">
+          <option value="ALL">All statuses</option>
+          <option value="NOT STARTED">Pending Goating</option>
+          <option value="WAITING FOR BERTH">At Goating</option>
+          <option value="WAITING FOR UNLOADING">At Berth</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
+      </div>
+      <div class="tablewrap"><table class="table"><thead><tr><th>Trip ID</th><th>Plate</th><th>Item</th><th>Hauler</th><th>Shift</th><th>TA On Duty</th><th>Goating Arrival</th><th>Berth Arrival</th><th>Finish Unload</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tripBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="events" class="view">
+    <div class="panel"><h2>Event Audit Log</h2><div class="tablewrap"><table class="table"><thead><tr><th>Time</th><th>Trip</th><th>Plate</th><th>Event</th><th>Recorded By</th></tr></thead><tbody id="eventBody"></tbody></table></div></div>
+  </section>
+
+  <section id="analytics" class="view">
+    <div class="cards" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="card analytics-kpi" id="kpiTrips" onclick="window.showAnalyticsKPI('TRIPS')"><div class="kpi-label">Trips Analyzed</div><div class="kpi-value" id="aTrips">0</div><div class="kpi-hint">Click to view trip details</div></div>
+      <div class="card analytics-kpi" id="kpiG2B" onclick="window.showAnalyticsKPI('G2B')"><div class="kpi-label">Avg Goating → Berth</div><div class="kpi-value" id="aG2B">—</div><div class="kpi-hint">Click to view stage details</div></div>
+      <div class="card analytics-kpi" id="kpiBerth" onclick="window.showAnalyticsKPI('BERTH')"><div class="kpi-label">Avg Berth & Unload</div><div class="kpi-value" id="aBW">—</div><div class="kpi-hint">Click to view stage details</div></div>
+    </div>
+    <div class="grid">
+      <div class="panel wide">
+        <h2>Waiting Time by Trip</h2>
+        <div class="toolbar">
+          <select class="select" id="analyticsPeriod"><option value="ALL">All Records</option><option value="TODAY">Today</option></select>
+          <select class="select" id="analyticsHauler"><option value="ALL">All Haulers</option></select>
+        </div>
+        <div class="chartbox chart-clickable" id="chartStageBox" onclick="window.showStageChartDetails()"><canvas id="stageChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Average Stage Performance</h2>
+        <div class="chartbox chart-clickable" id="chartAvgBox" onclick="window.showAverageChartDetails()"><canvas id="avgChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Time Distribution by Stage</h2>
+        <div class="chartbox chart-clickable" id="chartPieBox"><canvas id="pieChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Complete Trip Performance Data</h2><p style="font-size:12px;color:var(--muted);margin-top:-8px">Click any trip row to open its complete stage-by-stage waiting-time details.</p>
+        <div class="tablewrap"><table class="table detail-table"><thead><tr><th>Trip</th><th>Truck</th><th>Hauler</th><th>Material</th><th>G→B</th><th>Berth & Unload</th><th>Total</th></tr></thead><tbody id="analyticsBody"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="masters" class="view">
+    <div class="grid">
+      <div class="panel wide">
+        <h2>Active Duty Setup</h2>
+        <p style="font-size:12px;color:var(--muted);margin-top:-8px;margin-bottom:12px">Configure the current Transport Assistant on duty and shift settings for new trip logging.</p>
+        <div class="formgrid">
+          <div class="field"><label>TA On Duty</label><input id="masterDutyTA" placeholder="e.g. Geo"></div>
+          <div class="field"><label>Shift (Auto-detected)</label><input id="masterDutyShiftDisplay" readonly style="background:#f8fafc; font-weight:700;" value="1st"></div>
+        </div>
+      </div>
+      <div class="panel"><h2>Trucks</h2><div class="toolbar"><button class="btn secondary" id="addTruckBtn">＋ Add Truck</button></div><div class="tablewrap"><table class="table"><thead><tr><th>Plate</th><th>Hauler</th><th>Type</th><th>Capacity</th><th>TA Personnel</th><th>Actions</th></tr></thead><tbody id="truckBody"></tbody></table></div></div>
+      <div class="panel"><h2>TA Personnel / Transport Assistants</h2>
+<div class="toolbar"><button class="btn secondary" id="addTABtn">＋ Add TA Personnel</button></div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Active Trucks</th><th>Trips Monitored</th><th>Actions</th></tr></thead><tbody id="taBody"></tbody></table></div></div>
+<div class="panel wide"><h2>Haulers</h2><div class="toolbar"><button class="btn secondary" id="addHaulerBtn">＋ Add Hauler</button></div><div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Coordinator</th><th>Contact</th><th>Active Trucks</th><th>Trips</th><th>Avg G→B</th><th>Avg Berth & Unload</th><th>Actions</th></tr></thead><tbody id="haulerBody"></tbody></table></div></div>
+    </div>
+  </section>
+</main>
+</div>
+
+<!-- Modals -->
+<div class="modal" id="modal">
+<div class="modalbox">
+<h2 id="modalTitle">New Trip</h2>
+<div id="modalContent"></div>
+<div class="actions"><button class="btn secondary" id="cancelBtn">Cancel</button><button class="btn primary" id="saveBtn">Save</button></div>
+</div>
+</div>
+
+<div class="modal" id="analyticsDetailModal">
+<div class="modalbox">
+<h2 id="analyticsDetailTitle">Analytics Details</h2>
+<div id="analyticsDetailContent"></div>
+<div class="actions"><button class="btn secondary" id="closeAnalyticsDetailBtn">Close</button></div>
+</div>
+</div>
+
+<div class="modal" id="detailModal">
+<div class="modalbox">
+<h2 id="detailTitle">Trip Details</h2>
+<div id="detailContent"></div>
+<div class="actions"><button class="btn secondary" id="closeDetailBtn">Close</button></div>
+</div>
+</div>
+
+<div class="modal" id="manualTimeModal">
+<div class="modalbox">
+<h2>Manual Time Entry</h2>
+<p id="manualTimeSubHeader" style="font-size:13px; color:var(--muted); margin-top:-6px; margin-bottom:16px;">Set timestamp for truck movement</p>
+<div class="formgrid">
+<div class="field"><label>Date</label><input type="date" id="manualDate"></div>
+<div class="field"><label>Time</label><input type="time" id="manualClock"></div>
+</div>
+<div class="actions">
+<button class="btn secondary" id="closeManualModalBtn">Cancel</button>
+<button class="btn primary" id="saveManualTimeBtn">Save Timestamp</button>
+</div>
+</div>
+</div>
+
+<div class="modal" id="editReasonModal">
+<div class="modalbox">
+<h2>Edit Alert Reason</h2>
+<div class="formgrid" style="grid-template-columns: 1fr;">
+<div class="field"><label>Reason / Remarks</label><input type="text" id="customReasonInput" placeholder="Enter custom reason..."></div>
+</div>
+<div class="actions">
+<button class="btn secondary" id="closeEditReasonBtn">Cancel</button>
+<button class="btn primary" id="saveReasonBtn">Save Reason</button>
+</div>
+</div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  const KEY='apo_port_flow_v2';
+  const nowISO=()=>new Date().toISOString();
+  const fmtTime=x=>x?new Date(x).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'—';
+  const fmtDate=x=>x?new Date(x).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+  const dur=ms=>{
+    if(ms==null||isNaN(ms))return '—'; 
+    let s=Math.max(0,Math.floor(ms/1000)), h=Math.floor(s/3600); 
+    s%=3600; let m=Math.floor(s/60); 
+    s%=60; 
+    return (h?h+' hrs ':'')+(m?m+' mins ':'')+(!h && !m ? s+'s' : '');
+  };
+  const dateKey=()=>new Date().toISOString().slice(0,10);
+
+  let activeKpiFilter = 'ALL';
+
+  let initialData = {
+   currentDuty: { ta: 'Geo' },
+   trucks:[
+    {id:'TRK-0001',plate:'ABC 1234',hauler:'Hauler A',type:'Cargo',capacity:25},
+    {id:'TRK-0002',plate:'XYZ 5678',hauler:'Hauler B',type:'Short Trailer',capacity:30},
+    {id:'TRK-0003',plate:'DEF 9012',hauler:'Hauler A',type:'Long Trailer',capacity:40}
+   ],
+   haulers:[{name:'Hauler A',coord:'Juan Dela Cruz'},{name:'Hauler B',coord:'Pedro Santos'}],
+   vessels:[],
+   trips:[],events:[]
+  };
+
+  let data = initialData;
+  try {
+    const saved = localStorage.getItem(KEY);
+    if(saved) data = JSON.parse(saved);
+  } catch(e) {
+    console.warn('localStorage disabled or unreadable. Using in-memory state.');
+  }
+
+  data.currentDuty = data.currentDuty || { ta: 'Geo' };
+  data.taPersonnel=(data.taPersonnel||[]).map(x=>typeof x==='string'?{name:x}:x);
+  data.trucks=(data.trucks||[]).map(x=>({...x,taPersonnel:x.taPersonnel||''}));
+  data.haulers=(data.haulers||[]).map(x=>({...x,contact:x.contact||''}));
+  data.vessels = [];
+  data.customReasons = data.customReasons || {};
+
+  function save(){
+    try { localStorage.setItem(KEY,JSON.stringify(data)); } catch(e){}
+  }
+
+  function getCurrentRealtimeShift() {
+    const h = new Date().getHours();
+    if (h >= 0 && h < 😎 return '1st';
+    if (h >= 8 && h < 16) return '2nd';
+    return '3rd';
+  }
+
+  function status(t){
+    if(t.finished) return 'COMPLETED';
+    if(t.berth) return 'WAITING FOR UNLOADING';
+    if(t.goating) return 'WAITING FOR BERTH';
+    return 'NOT STARTED';
+  }
+  function statusClass(s){
+    return s==='COMPLETED'?'s-completed':s==='WAITING FOR UNLOADING'?'s-berth':s==='WAITING FOR BERTH'?'s-goating':'s-created';
+  }
+  function stageStart(t){return t.finished?null:t.berth||t.goating}
+  function stageDuration(t){let st=stageStart(t);return st?dur(new Date()-new Date(st)):'—'}
+  
+  function addEvent(t,type){
+    let e={id:'EV-'+String(data.events.length+1).padStart(5,'0'),tripId:t.id,plate:t.plate,type,time:nowISO(),by:data.currentDuty.ta||'System'};
+    data.events.unshift(e);
+  }
+
+  function record(t,type, customTimeISO){
+    const map={GOATING_ARRIVAL:'goating',BERTH_ARRIVAL:'berth',UNLOADING_FINISHED:'finished'}; 
+    const key = map[type];
+    if(!key) return;
+    t[key] = customTimeISO || nowISO(); 
+    addEvent(t,type); 
+    save(); 
+    render();
+  }
+
+  const THRESHOLDS = { BERTH_NOT_STARTED_MAX: 3600000, GOATING_MAX: 2700000, UNLOADING_MAX: 3600000 };
+
+  function isOverOneHourBerth(t) {
+    if (!t.finished && !t.berth) {
+      const entryTime = t.goating;
+      if (entryTime && (new Date() - new Date(entryTime)) >= THRESHOLDS.BERTH_NOT_STARTED_MAX) return true;
+    }
+    return false;
+  }
+
+  function getTripAnomaly(t) {
+    const s = status(t), now = new Date();
+    if (isOverOneHourBerth(t)) {
+      const defaultReason = 'Awaiting berth assignment / >1 Hr Queue';
+      const reason = data.customReasons[t.id] || defaultReason;
+      return { level: 'danger', type: 'High Delay', waitingMins: Math.floor((now - new Date(t.goating))/60000), targetMins: 20, reason: reason, message: `⚠ >1 Hr Delay (${dur(now - new Date(t.goating))}) - Berth Not Reached` };
+    }
+    if (s === 'WAITING FOR BERTH' && t.goating && (now - new Date(t.goating)) > THRESHOLDS.GOATING_MAX) {
+      const mins = Math.floor((now - new Date(t.goating))/60000);
+      const defaultReason = 'Berth congestion or traffic queue.';
+      const reason = data.customReasons[t.id] || defaultReason;
+      return { level: 'warning', type: 'Goating Delay', waitingMins: mins, targetMins: 45, reason: reason, message: `⚠ Goating Delay (${dur(now - new Date(t.goating))})` };
+    }
+    if (s === 'WAITING FOR UNLOADING' && t.berth && (now - new Date(t.berth)) > THRESHOLDS.UNLOADING_MAX) {
+      const mins = Math.floor((now - new Date(t.berth))/60000);
+      const defaultReason = 'Equipment slow-down or crane throughput bottleneck.';
+      const reason = data.customReasons[t.id] || defaultReason;
+      return { level: 'danger', type: 'Slow Unloading / Berth', waitingMins: mins, targetMins: 45, reason: reason, message: `⚠ Slow Berth Unloading (${dur(now - new Date(t.berth))})` };
+    }
+    return null;
+  }
+
+  let currentEditingTripId = null;
+  window.openEditReasonModal = function(tripId, currentReason) {
+    currentEditingTripId = tripId;
+    document.getElementById('customReasonInput').value = currentReason || '';
+    document.getElementById('editReasonModal').classList.add('show');
+  };
+
+  document.getElementById('closeEditReasonBtn').onclick = () => {
+    document.getElementById('editReasonModal').classList.remove('show');
+  };
+
+  document.getElementById('saveReasonBtn').onclick = () => {
+    if (!currentEditingTripId) return;
+    const val = document.getElementById('customReasonInput').value.trim();
+    data.customReasons[currentEditingTripId] = val;
+    save();
+    document.getElementById('editReasonModal').classList.remove('show');
+    render();
+  };
+
+  /* Create Trip: Manual Goating Start Only */
+  function createTrip(form){
+    let plate=(form.plate||'').trim().toUpperCase(); if(!plate)return alert('Enter a truck or plate number.');
+    let existing=data.trucks.find(x=>x.plate.toUpperCase()===plate);
+    let truck=existing||{id:'TRK-'+String(data.trucks.length+1).padStart(4,'0'),plate,hauler:form.hauler||'Unassigned',type:form.type||'Cargo',capacity:''};
+    if(!existing){data.trucks.push(truck)}
+    let n=data.trips.length+1;
+    let t={
+      id:'TRIP-'+dateKey().replace(/-/g,'')+'-'+String(n).padStart(4,'0'),
+      date:dateKey(),
+      truckId:truck.id,
+      plate:plate,
+      hauler:form.hauler||truck.hauler,
+      type:form.type||truck.type,
+      vessel:'Unassigned',
+      berth:'Unassigned',
+      material:(form.material||'').trim()||'Unspecified',
+      shift:getCurrentRealtimeShift(),
+      taPersonnel:form.taPersonnel||data.currentDuty.ta,
+      goating: null,
+      berth: null,
+      finished: null
+    };
+    data.trips.unshift(t);
+    addEvent(t, 'TRIP_CREATED');
+    save();closeModal();render();
+  }
+
+  function openModal(kind){
+    const modal=document.getElementById('modal'), c=document.getElementById('modalContent'); 
+    document.getElementById('modalTitle').textContent=kind==='truck'?'Add Truck':'New Trip'; 
+    modal.classList.add('show');
+    if(kind==='truck'){
+      window.openTruckModal();
+    } else {
+      const currentShift = getCurrentRealtimeShift();
+      c.innerHTML=`<div class="formgrid">
+      <div class="field"><label>Truck / Plate Number</label><input id="fPlate" list="truckList" placeholder="e.g. ABC 1234"><datalist id="truckList">${data.trucks.map(x=>`<option value="${x.plate}">${x.hauler} — ${x.type}</option>`).join('')}</datalist></div>
+      <div class="field"><label>TA On Duty</label><input id="tripTA" value="${data.currentDuty.ta}"></div>
+      <div class="field"><label>Shift (Auto-detected)</label><input id="fShift" readonly style="background:#f8fafc; font-weight:700;" value="${currentShift}"></div>
+      <div class="field"><label>Hauler</label><input id="fHauler" list="haulerList" placeholder="e.g. Hauler A"><datalist id="haulerList">${data.haulers.map(x=>`<option value="${x.name}">`).join('')}</datalist></div>
+      <div class="field"><label>Truck Type</label><select id="fType"><option>Cargo</option><option>Short Trailer</option><option>Long Trailer</option></select></div>
+      <div class="field"><label>Material (Item)</label><input id="fMaterial" placeholder="e.g. Cement"></div>
+      </div>`;
+
+      const plateInput = document.getElementById('fPlate');
+      plateInput.addEventListener('input', () => {
+        const val = plateInput.value.trim().toUpperCase();
+        const foundTruck = data.trucks.find(t => t.plate.toUpperCase() === val);
+        if (foundTruck) {
+          document.getElementById('fHauler').value = foundTruck.hauler || '';
+          document.getElementById('fType').value = foundTruck.type || 'Cargo';
+        }
+      });
+
+      document.getElementById('saveBtn').onclick=()=>{
+        createTrip({
+          plate:document.getElementById('fPlate').value,
+          taPersonnel:document.getElementById('tripTA').value,
+          shift:getCurrentRealtimeShift(),
+          hauler:document.getElementById('fHauler').value,
+          type:document.getElementById('fType').value,
+          material:document.getElementById('fMaterial').value
+        });
+      };
+    }
+  }
+
+  /* Truck Add/Edit Modal Handler */
+  window.openTruckModal = function(truckId){
+    const modal=document.getElementById('modal'), c=document.getElementById('modalContent');
+    const existing = truckId ? data.trucks.find(x => x.id === truckId) : null;
+    document.getElementById('modalTitle').textContent = existing ? 'Edit Truck' : 'Add Truck';
+    modal.classList.add('show');
+    
+    c.innerHTML=`<div class="formgrid">
+      <div class="field"><label>Plate Number</label><input id="fPlate" value="${existing ? existing.plate : ''}"></div>
+      <div class="field"><label>Hauler</label><select id="fHauler">${data.haulers.map(x=>`<option ${existing && existing.hauler === x.name ? 'selected' : ''}>${x.name}</option>`).join('')}</select></div>
+      <div class="field"><label>Truck Type</label><select id="fType">${['Cargo','Short Trailer','Long Trailer'].map(x=>`<option ${existing && existing.type === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div class="field"><label>Capacity (tons)</label><input id="fCap" type="number" value="${existing && existing.capacity != null ? existing.capacity : ''}"></div>
+      <div class="field"><label>TA Personnel</label><select id="fTa"><option value="">Unassigned</option>${(data.taPersonnel||[]).map(ta=>`<option ${existing && existing.taPersonnel === ta.name ? 'selected' : ''}>${ta.name}</option>`).join('')}</select></div>
+    </div>`;
+
+    document.getElementById('saveBtn').onclick = () => {
+      let plate = document.getElementById('fPlate').value.trim().toUpperCase();
+      if(!plate) return alert('Enter a plate number.');
+      let hauler = document.getElementById('fHauler').value;
+      let type = document.getElementById('fType').value;
+      let capacity = document.getElementById('fCap').value;
+      let taPersonnel = document.getElementById('fTa').value;
+
+      if(existing) {
+        existing.plate = plate;
+        existing.hauler = hauler;
+        existing.type = type;
+        existing.capacity = capacity;
+        existing.taPersonnel = taPersonnel;
+      } else {
+        data.trucks.push({
+          id: 'TRK-' + String(data.trucks.length + 1).padStart(4, '0'),
+          plate,
+          hauler,
+          type,
+          capacity,
+          taPersonnel
+        });
+      }
+      save();
+      closeModal();
+      renderMasterData();
+      render();
+    };
+  };
+
+  window.deleteTruck = function(truckId){
+    const tr = data.trucks.find(x => x.id === truckId);
+    if(!tr) return;
+    if(!confirm(`Delete truck ${tr.plate}?`)) return;
+    data.trucks = data.trucks.filter(x => x.id !== truckId);
+    save();
+    renderMasterData();
+    render();
+  };
+
+  function closeModal(){document.getElementById('modal').classList.remove('show')}
+  document.getElementById('cancelBtn').onclick=closeModal;
+  document.getElementById('newTripBtn').onclick=()=>openModal();
+  document.getElementById('addTruckBtn').onclick=()=>window.openTruckModal();
+  document.getElementById('addHaulerBtn').onclick=()=>openHaulerModal();
+  document.getElementById('addTABtn').onclick=()=>openTAModal();
+  document.getElementById('closeAnalyticsDetailBtn').onclick=()=>document.getElementById('analyticsDetailModal').classList.remove('show');
+  document.getElementById('closeDetailBtn').onclick=()=>document.getElementById('detailModal').classList.remove('show');
+  document.getElementById('closeManualModalBtn').onclick=()=>document.getElementById('manualTimeModal').classList.remove('show');
+  document.getElementById('saveManualTimeBtn').onclick=saveManualTime;
+
+  /* KPI Card Click Handler Setup */
+  document.querySelectorAll('.kpi-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const filter = this.getAttribute('data-kpifilter');
+      activeKpiFilter = filter;
+      const dashSelect = document.getElementById('dashFilter');
+      if(dashSelect) dashSelect.value = filter;
+      render();
+    });
+  });
+
+  document.getElementById('dashFilter')?.addEventListener('change', function() {
+    activeKpiFilter = this.value;
+    render();
+  });
+
+  document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(b.dataset.view).classList.add('active');
+    document.getElementById('pageTitle').innerHTML=`<h1>${b.textContent.replace(/^[^ ]+ /,'')}</h1><p>${new Date().toLocaleDateString([], {weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>`;
+    if(b.dataset.view==='analytics') renderAnalytics();
+    if(b.dataset.view==='insights') renderSmartInsights();
+    if(b.dataset.view==='alerts') renderAlertCenter();
+    if(b.dataset.view==='trips') renderTripsTable();
+    if(b.dataset.view==='events') renderEventLog();
+    if(b.dataset.view==='masters') renderMasterData();
+  });
+
+  document.getElementById('masterDutyTA')?.addEventListener('input', (e) => {
+    data.currentDuty.ta = e.target.value.trim() || 'Geo';
+    save();
+    document.getElementById('dutyTA').textContent = data.currentDuty.ta;
+  });
+
+  // Export Excel and PDF Functionality
+  document.getElementById('downloadExcelBtn')?.addEventListener('click', function() {
+    const table = document.getElementById('replicaTable');
+    if (!table) return;
+    const wb = XLSX.utils.table_to_book(table, {sheet: "Daily Operations Log"});
+    XLSX.writeFile(wb, `APO_Port_Operations_Log_${dateKey()}.xlsx`);
+  });
+
+  document.getElementById('downloadPdfBtn')?.addEventListener('click', function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+    doc.text("APO Port Flow Control - Daily Operations Log", 14, 15);
+    doc.autoTable({ html: '#replicaTable', startY: 20, theme: 'grid' });
+    doc.save(`APO_Port_Operations_Log_${dateKey()}.pdf`);
+  });
+
+  // HD Photo Download Feature for Trucks Waiting Time Summary Widget
+  window.downloadWaitingTimeSummaryHD = function(){
+    const widgetElement = document.getElementById('trucksWaitingTimeSummaryCard');
+    if(!widgetElement) return;
+
+    const downloadBtn = document.getElementById('widgetDownloadBtn');
+    if(downloadBtn) downloadBtn.style.display = 'none';
+
+    html2canvas(widgetElement, { scale: 3, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+      if(downloadBtn) downloadBtn.style.display = '';
+      const link = document.createElement('a');
+      link.download = `Trucks_Waiting_Time_Summary_${dateKey()}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    }).catch(err => {
+      if(downloadBtn) downloadBtn.style.display = '';
+      console.error('Failed to download image: ', err);
+      alert('Error generating HD image. Please try again.');
+    });
+  };
+
+  window.downloadAlertCardImage = function(cardId, plateNumber){
+    const cardElement = document.getElementById(cardId);
+    if(!cardElement) return;
+
+    const btnToHide = cardElement.querySelectorAll('.alert-copy-btn, .alert-edit-reason-btn');
+    btnToHide.forEach(el => el.style.display = 'none');
+
+    html2canvas(cardElement, { scale: 3, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+      btnToHide.forEach(el => el.style.display = '');
+      const link = document.createElement('a');
+      link.download = `Alert_Truck_${plateNumber.replace(/\s+/g, '_')}_${dateKey()}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    }).catch(err => {
+      btnToHide.forEach(el => el.style.display = '');
+      console.error('Failed to download image: ', err);
+      alert('Error generating HD image. Please try again.');
+    });
+  };
+
+  document.getElementById('copySupervisorCardBtn').onclick = function() {
+    const activeTrips = data.trips.filter(t => !t.finished);
+    const goating = activeTrips.filter(t => status(t) === 'WAITING FOR BERTH').length;
+    const berth = activeTrips.filter(t => status(t) === 'WAITING FOR UNLOADING').length;
+    const completedToday = data.trips.filter(t => t.date === dateKey() && t.finished).length;
+    const delayed = activeTrips.filter(t => getTripAnomaly(t) !== null).length;
+    
+    let completedTrips = data.trips.filter(t => t.date === dateKey() && t.finished);
+    let avgMins = 0;
+    if(completedTrips.length > 0) {
+      let totalMins = completedTrips.reduce((acc, t) => acc + (new Date(t.finished) - new Date(t.goating || t.berth)), 0) / completedTrips.length;
+      avgMins = Math.round(totalMins / 60000);
+    }
+
+    const summaryText = `Live Operations Summary\n\nActive Unfinished Trips: ${activeTrips.length}\nGoating: ${goating}\nBerth: ${berth}\nCompleted (Today): ${completedToday}\n\nAverage Turnaround Today: ${avgMins} mins\nTotal Delayed Trips: ${delayed}`;
+    
+    navigator.clipboard.writeText(summaryText).then(()=>{
+      const btn = document.getElementById('copySupervisorCardBtn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓';
+      setTimeout(()=> btn.innerHTML = orig, 1500);
+    }).catch(err => {
+      console.error('Failed to copy supervisor summary: ', err);
+    });
+  };
+
+  document.getElementById('supDelayedTrips').onclick = function() {
+    document.querySelector('[data-view="alerts"]').click();
+  };
+
+  /* Action Buttons with NOW and MANUAL Timestamp Buttons for each stage */
+  function actionButtons(t){
+    let s=status(t); 
+    if(s === 'NOT STARTED') {
+      return `<div class="action-btn-group">
+        <span class="action-stage-label">Goating:</span>
+        <button class="btn primary" onclick="event.stopPropagation();window.recordById('${t.id}','GOATING_ARRIVAL')">Now</button>
+        <button class="btn secondary" onclick="event.stopPropagation();window.recordManual('${t.id}','GOATING_ARRIVAL')">Manual</button>
+      </div>`;
+    }
+    if(s==='WAITING FOR BERTH') {
+      return `<div class="action-btn-group">
+        <span class="action-stage-label">Berth:</span>
+        <button class="btn primary" onclick="event.stopPropagation();window.recordById('${t.id}','BERTH_ARRIVAL')">Now</button>
+        <button class="btn secondary" onclick="event.stopPropagation();window.recordManual('${t.id}','BERTH_ARRIVAL')">Manual</button>
+      </div>`; 
+    }
+    if(s==='WAITING FOR UNLOADING') {
+      return `<div class="action-btn-group">
+        <span class="action-stage-label">Finish:</span>
+        <button class="btn primary" onclick="event.stopPropagation();window.recordById('${t.id}','UNLOADING_FINISHED')">Now</button>
+        <button class="btn secondary" onclick="event.stopPropagation();window.recordManual('${t.id}','UNLOADING_FINISHED')">Manual</button>
+      </div>`; 
+    }
+    return `<span style="font-size:12px; font-weight:700; color:var(--green);">✓ Completed</span>`;
+  }
+
+  window.recordById = function(id,type){
+    let t=data.trips.find(x=>x.id===id);
+    if(!t)return;
+    record(t,type);
+  };
+
+  let manualTarget={id:null,type:null};
+  window.recordManual = function(id,type){
+   manualTarget={id:id,type:type};
+   const now=new Date();
+   document.getElementById('manualDate').value=now.toISOString().slice(0,10);
+   document.getElementById('manualClock').value=now.toTimeString().slice(0,5);
+   
+   const stageLabels = {
+     GOATING_ARRIVAL: 'Arrival at Goating',
+     BERTH_ARRIVAL: 'Arrival at Berth',
+     UNLOADING_FINISHED: 'Finish Unloading'
+   };
+   document.getElementById('manualTimeSubHeader').textContent = `Set Timestamp for ${stageLabels[type] || 'Stage'}`;
+   document.getElementById('manualTimeModal').classList.add('show');
+  };
+
+  function saveManualTime(){
+   const t=data.trips.find(x=>x.id===manualTarget.id);
+   if(!t)return document.getElementById('manualTimeModal').classList.remove('show');
+   const dt=document.getElementById('manualDate').value+'T'+document.getElementById('manualClock').value+':00';
+   const d=new Date(dt);
+   const map={GOATING_ARRIVAL:'goating',BERTH_ARRIVAL:'berth',UNLOADING_FINISHED:'finished'};
+   const prev={BERTH_ARRIVAL:'goating',UNLOADING_FINISHED:'berth'};
+   const pf=prev[manualTarget.type];
+   if(pf && t[pf] && d<new Date(t[pf])){
+     alert('Time cannot be earlier than previous stage timestamp.');
+     return;
+   }
+   t[map[manualTarget.type]]=d.toISOString();
+   addEvent(t,manualTarget.type+' (MANUAL)');
+   save(); 
+   render(); 
+   document.getElementById('manualTimeModal').classList.remove('show');
+  }
+
+  function openHaulerModal(){
+    const modal=document.getElementById('modal'), c=document.getElementById('modalContent');
+    document.getElementById('modalTitle').textContent='Add Hauler';
+    c.innerHTML=`<div class="formgrid">
+      <div class="field"><label>Hauler Name</label><input id="hName"></div>
+      <div class="field"><label>Coordinator</label><input id="hCoord"></div>
+      <div class="field"><label>Contact Number</label><input id="hContact"></div>
+    </div>`;
+    document.getElementById('saveBtn').onclick=()=>{
+      const name=document.getElementById('hName').value.trim();
+      if(!name)return alert('Enter a hauler name.');
+      data.haulers.push({name,coord:document.getElementById('hCoord').value.trim(),contact:document.getElementById('hContact').value.trim()});
+      save();closeModal();render();
+    };
+    modal.classList.add('show');
+  }
+
+  window.editHauler = function(encoded){
+    const oldName=decodeURIComponent(encoded), h=data.haulers.find(x=>x.name===oldName); if(!h)return;
+    document.getElementById('modalTitle').textContent='Edit Hauler';
+    document.getElementById('modalContent').innerHTML=`<div class="formgrid">
+      <div class="field"><label>Hauler Name</label><input id="ehName" value="${h.name}"></div>
+      <div class="field"><label>Coordinator</label><input id="ehCoord" value="${h.coord||''}"></div>
+      <div class="field"><label>Contact Number</label><input id="ehContact" value="${h.contact||''}"></div>
+    </div>`;
+    document.getElementById('saveBtn').onclick=()=>{
+      const newName=document.getElementById('ehName').value.trim();
+      if(!newName)return alert('Enter a hauler name.');
+      h.name=newName;h.coord=document.getElementById('ehCoord').value.trim();h.contact=document.getElementById('ehContact').value.trim();
+      data.trips.forEach(tr=>{if(tr.hauler===oldName)tr.hauler=newName});
+      data.trucks.forEach(tr=>{if(tr.hauler===oldName)tr.hauler=newName});
+      save();closeModal();render();
+    };
+    document.getElementById('modal').classList.add('show');
+  };
+
+  window.deleteHauler = function(encoded){
+    const name=decodeURIComponent(encoded);
+    if(data.trips.some(x=>x.hauler===name)||data.trucks.some(x=>x.hauler===name)){alert('This hauler has linked trucks or trip history and cannot be deleted.');return}
+    if(!confirm(`Delete hauler ${name}?`))return;
+    data.haulers=data.haulers.filter(x=>x.name!==name);save();render();
+  };
+
+  function openTAModal(editName){
+    const existing=editName?(data.taPersonnel||[]).find(x=>x.name===editName):null;
+    document.getElementById('modalTitle').textContent=existing?'Edit TA Personnel':'Add TA Personnel';
+    document.getElementById('modalContent').innerHTML=`<div class="formgrid">
+      <div class="field"><label>TA Personnel Name</label><input id="taName" value="${existing?existing.name:''}"></div>
+    </div>`;
+    document.getElementById('saveBtn').onclick=()=>{
+      const name=document.getElementById('taName').value.trim();
+      if(!name)return alert('Enter full name.');
+      if(existing){
+        const old=existing.name; existing.name=name;
+        data.trucks.forEach(t=>{if(t.taPersonnel===old)t.taPersonnel=name});
+      }else{
+        data.taPersonnel.push({name});
+      }
+      save();closeModal();render();
+    };
+    document.getElementById('modal').classList.add('show');
+  }
+
+  window.deleteTA = function(name){
+    if(!confirm(`Delete TA Personnel ${name}?`))return;
+    data.taPersonnel=data.taPersonnel.filter(x=>x.name!==name);
+    save();render();
+  };
+
+  window.showTripDetails = function(id){
+    const t=data.trips.find(x=>x.id===id); if(!t)return;
+    const goatingToBerth=t.goating&&t.berth?dur(new Date(t.berth)-new Date(t.goating)):'—';
+    const berthAndUnload=t.berth&&t.finished?dur(new Date(t.finished)-new Date(t.berth)):'—';
+    const total=t.goating&&t.finished?dur(new Date(t.finished)-new Date(t.goating)):'—';
+    const tripEvents=data.events.filter(e=>e.tripId===t.id).sort((a,b)=>new Date(a.time)-new Date(b.time));
+    document.getElementById('detailTitle').textContent=`Trip Details — ${t.plate}`;
+    document.getElementById('detailContent').innerHTML=`
+      <div class="formgrid">
+        <div class="card"><div class="kpi-label">Trip ID</div><b>${t.id}</b></div>
+        <div class="card"><div class="kpi-label">Current Status</div><span class="status ${statusClass(status(t))}">${status(t)}</span></div>
+        <div class="card"><div class="kpi-label">Truck / Plate</div><b>${t.plate}</b></div>
+        <div class="card"><div class="kpi-label">Hauler</div><b>${t.hauler}</b></div>
+        <div class="card"><div class="kpi-label">TA On Duty</div><b>${t.taPersonnel||'—'}</b></div>
+        <div class="card"><div class="kpi-label">Shift</div><b>${t.shift||'—'}</b></div>
+        <div class="card"><div class="kpi-label">Material (Item)</div><b>${t.material}</b></div>
+      </div>
+      <h3 style="margin-top:20px">Timestamps</h3>
+      <div class="formgrid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card"><div class="kpi-label">Arrival at Goating</div><b>${fmtDate(t.goating)}</b></div>
+        <div class="card"><div class="kpi-label">Arrival at Berth</div><b>${fmtDate(t.berth)}</b></div>
+        <div class="card"><div class="kpi-label">Done Unloading</div><b>${fmtDate(t.finished)}</b></div>
+      </div>
+      <h3 style="margin-top:20px">Time Performance</h3>
+      <div class="formgrid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card"><div class="kpi-label">Goating → Berth</div><div class="kpi-value">${goatingToBerth}</div></div>
+        <div class="card"><div class="kpi-label">Berth & Unloading</div><div class="kpi-value">${berthAndUnload}</div></div>
+        <div class="card"><div class="kpi-label">Total Cycle Time</div><div class="kpi-value">${total}</div></div>
+      </div>
+      <h3 style="margin-top:20px">Timeline</h3>
+      <table class="table"><thead><tr><th>Event</th><th>Time</th><th>Recorded By</th></tr></thead><tbody>
+      ${tripEvents.length?tripEvents.map(e=>`<tr><td>${e.type.replace(/_/g,' ')}</td><td>${fmtDate(e.time)}</td><td>${e.by}</td></tr>`).join(''):`<tr><td colspan="3" class="empty">No events recorded yet.</td></tr>`}
+      </tbody></table>`;
+    document.getElementById('detailModal').classList.add('show');
+  };
+
+  window.editTrip = function(id){
+    const t=data.trips.find(x=>x.id===id); if(!t)return;
+    document.getElementById('modalTitle').textContent=`Edit Trip — ${t.plate}`;
+    document.getElementById('modalContent').innerHTML=`
+      <div class="formgrid">
+        <div class="field"><label>Truck / Plate Number</label><input id="ePlate" value="${t.plate}"></div>
+        <div class="field"><label>Hauler</label><input id="eHauler" value="${t.hauler}"></div>
+        <div class="field"><label>TA On Duty</label><input id="eTA" value="${t.taPersonnel||''}"></div>
+        <div class="field"><label>Shift</label><input id="eShift" readonly style="background:#f8fafc; font-weight:700;" value="${t.shift||getCurrentRealtimeShift()}"></div>
+        <div class="field"><label>Truck Type</label><select id="eType">${['Cargo','Short Trailer','Long Trailer'].map(x=>`<option ${x===t.type?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="field"><label>Material (Item)</label><input id="eMaterial" value="${t.material}"></div>
+      </div>`;
+    document.getElementById('saveBtn').onclick=()=>{
+      t.plate=document.getElementById('ePlate').value.trim().toUpperCase();
+      t.hauler=document.getElementById('eHauler').value.trim();
+      t.taPersonnel=document.getElementById('eTA').value.trim();
+      t.type=document.getElementById('eType').value;
+      t.material=document.getElementById('eMaterial').value.trim();
+      save(); closeModal(); render();
+    };
+    document.getElementById('modal').classList.add('show');
+  };
+
+  window.deleteTrip = function(id){
+    const t=data.trips.find(x=>x.id===id); if(!t)return;
+    if(!confirm(`Delete trip ${t.id} (${t.plate})?`))return;
+    data.trips=data.trips.filter(x=>x.id!==id);
+    data.events=data.events.filter(x=>x.tripId!==id);
+    delete data.customReasons[id];
+    save(); render();
+  };
+
+  function minutesBetween(a,b){return a&&b?Math.max(0,(new Date(b)-new Date(a))/60000):null}
+  function average(values){let v=values.filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
+  function fmtMinutes(m){return m==null?'—':dur(m*60000)}
+
+  function getAnalyticsTrips(){
+    let list=[...data.trips];
+    if(document.getElementById('analyticsPeriod')?.value==='TODAY')list=list.filter(t=>t.date===dateKey());
+    let h=document.getElementById('analyticsHauler')?.value||'ALL';
+    if(h!=='ALL')list=list.filter(t=>t.hauler===h);
+    return list;
+  }
+
+  function renderSmartInsights() {
+    const container = document.getElementById('smartInsightsContainer');
+    if(!container) return;
+    
+    const activeTrips = data.trips.filter(t => !t.finished);
+    const completedToday = data.trips.filter(t => t.date === dateKey() && t.finished);
+    
+    const goatingMins = average(data.trips.map(t => minutesBetween(t.goating, t.berth)));
+    const berthMins = average(data.trips.map(t => minutesBetween(t.berth, t.finished)));
+    
+    let bottleneck = 'None detected';
+    let maxVal = Math.max(goatingMins || 0, berthMins || 0);
+    if(maxVal > 0) {
+      if(maxVal === goatingMins) bottleneck = 'Goating Queue / Traffic Stage';
+      else bottleneck = 'Berth & Unloading Stage';
+    }
+
+    container.innerHTML = `
+      <div class="insight-card">
+        <h3>🚀 Primary Bottleneck</h3>
+        <div class="insight-metric">${bottleneck}</div>
+        <p>Highest latency currently observed across port flow stages.</p>
+      </div>
+      <div class="insight-card">
+        <h3>⏱️ Average Turnaround (Today)</h3>
+        <div class="insight-metric">${completedToday.length ? fmtMinutes(average(completedToday.map(t => minutesBetween(t.goating || t.berth, t.finished)))) : '—'}</div>
+        <p>Measured from initial staging entry to completed check-out.</p>
+      </div>
+      <div class="insight-card">
+        <h3>📊 Active Workload</h3>
+        <div class="insight-metric">${activeTrips.length} Active</div>
+        <p>${completedToday.length} completed today out of ${data.trips.length} total logged trips.</p>
+      </div>
+      <div class="insight-card">
+        <h3>💡 Operational Recommendation</h3>
+        <p style="margin-top:8px;">${data.trips.length === 0 ? 'No trips logged yet. Start adding trips to generate real-time AI optimization recommendations.' : maxVal > 30 ? 'High latency detected at stage: <b>' + bottleneck + '</b>. Consider staggering incoming haulers.' : 'Port flow is running within optimal parameters. No immediate interventions required.'}</p>
+      </div>
+    `;
+  }
+
+  function renderAlertCenter() {
+    const container = document.getElementById('alertCenterContainer');
+    if(!container) return;
+
+    let activeAlertTrips = data.trips.filter(t => !t.finished && getTripAnomaly(t) !== null);
+
+    if (activeAlertTrips.length === 0) {
+      container.innerHTML = `<div class="empty" style="grid-column: 1/-1;">No active exceptions or delays detected across shifts at this time.</div>`;
+      return;
+    }
+
+    container.innerHTML = activeAlertTrips.map(t => {
+      const anomaly = getTripAnomaly(t);
+      const cardId = `alert_card_${t.id}`;
+      const levelClass = anomaly.level === 'danger' ? 'high' : 'warning';
+      const levelText = anomaly.level === 'danger' ? 'HIGH DELAY' : 'WARNING';
+
+      return `
+        <div class="alert-card-item" id="${cardId}">
+          <div class="alert-card-header">
+            <span class="alert-level-badge ${levelClass}">
+              <span class="alert-dot ${levelClass}"></span> ${levelText}
+            </span>
+            <button class="alert-copy-btn" onclick="window.downloadAlertCardImage('${cardId}', '${t.plate}')">
+              📥 HD Photo
+            </button>
+          </div>
+
+          <div class="alert-field-label">TRUCK / PLATE</div>
+          <div class="alert-field-value">${t.plate}</div>
+
+          <div class="alert-field-label">HAULER</div>
+          <div class="alert-field-value">${t.hauler}</div>
+
+          <div class="alert-field-label">ORIGIN SHIFT / DATE</div>
+          <div class="alert-field-value">${t.shift || '1st'} Shift (${t.date})</div>
+
+          <div class="alert-field-label">ITEM (MATERIAL)</div>
+          <div class="alert-field-value">${t.material || 'Unspecified'}</div>
+
+          <div class="alert-field-label">EXCEPTION / STAGE</div>
+          <div class="alert-field-value" style="color:${anomaly.level==='danger'?'var(--danger)':'var(--warn)'};">${anomaly.type}</div>
+
+          <div class="alert-field-label">WAITING TIME vs TARGET</div>
+          <div class="alert-field-value">${dur(anomaly.waitingMins * 60000)} (Target: ${anomaly.targetMins}m)</div>
+
+          <div class="alert-field-label">REASON / REMARKS</div>
+          <div class="alert-field-value" style="font-size:13px; font-weight:600; color:var(--muted);">${anomaly.reason}</div>
+
+          <button class="alert-edit-reason-btn" onclick="window.openEditReasonModal('${t.id}', '${anomaly.reason.replace(/'/g, "\\'")}')">
+            ✏️ Edit Reason
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderTripsTable() {
+    const tripBody = document.getElementById('tripBody');
+    if (!tripBody) return;
+    const search = (document.getElementById('tripSearch')?.value || '').toLowerCase();
+    const filterStatus = document.getElementById('tripStatus')?.value || 'ALL';
+
+    const filteredTrips = data.trips.filter(t => {
+      const s = status(t);
+      const matchesSearch = [t.id, t.plate, t.hauler, t.material, t.taPersonnel].join(' ').toLowerCase().includes(search);
+      const matchesStatus = (filterStatus === 'ALL' || s === filterStatus);
+      return matchesSearch && matchesStatus;
+    });
+
+    if (filteredTrips.length === 0) {
+      tripBody.innerHTML = `<tr><td colspan="11" class="empty">No trip records found.</td></tr>`;
+      return;
+    }
+
+    tripBody.innerHTML = filteredTrips.map(t => {
+      return `
+        <tr>
+          <td><b>${t.id}</b></td>
+          <td><b>${t.plate}</b></td>
+          <td>${t.material || 'Unspecified'}</td>
+          <td>${t.hauler}</td>
+          <td>${t.shift || '1st'}</td>
+          <td>${t.taPersonnel || '—'}</td>
+          <td>${fmtDate(t.goating)}</td>
+          <td>${fmtDate(t.berth)}</td>
+          <td>${fmtDate(t.finished)}</td>
+          <td><span class="status ${statusClass(status(t))}">${status(t)}</span></td>
+          <td>
+            <button class="btn secondary" style="padding:4px 8px; font-size:11px;" onclick="window.showTripDetails('${t.id}')">View</button>
+            <button class="btn secondary" style="padding:4px 8px; font-size:11px;" onclick="window.editTrip('${t.id}')">Edit</button>
+            <button class="btn danger" style="padding:4px 8px; font-size:11px;" onclick="window.deleteTrip('${t.id}')">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderEventLog() {
+    const eventBody = document.getElementById('eventBody');
+    if (!eventBody) return;
+    if (data.events.length === 0) {
+      eventBody.innerHTML = `<tr><td colspan="5" class="empty">No events logged yet.</td></tr>`;
+      return;
+    }
+    eventBody.innerHTML = data.events.map(e => `
+      <tr>
+        <td>${fmtDate(e.time)}</td>
+        <td><b>${e.tripId}</b></td>
+        <td><b>${e.plate}</b></td>
+        <td>${e.type.replace(/_/g, ' ')}</td>
+        <td>${e.by}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderMasterData() {
+    // Trucks
+    const truckBody = document.getElementById('truckBody');
+    if (truckBody) {
+      truckBody.innerHTML = data.trucks.map(tr => `
+        <tr>
+          <td><b>${tr.plate}</b></td>
+          <td>${tr.hauler}</td>
+          <td>${tr.type}</td>
+          <td>${tr.capacity ? tr.capacity + ' tons' : '—'}</td>
+          <td>${tr.taPersonnel || 'Unassigned'}</td>
+          <td>
+            <button class="btn secondary" style="padding:4px 8px; font-size:11px;" onclick="window.openTruckModal('${tr.id}')">Edit</button>
+            <button class="btn danger" style="padding:4px 8px; font-size:11px;" onclick="window.deleteTruck('${tr.id}')">Delete</button>
+          </td>
+        </tr>
+      `).join('') || `<tr><td colspan="6" class="empty">No trucks added.</td></tr>`;
+    }
+
+    // TA Personnel
+    const taBody = document.getElementById('taBody');
+    if (taBody) {
+      taBody.innerHTML = (data.taPersonnel || []).map(ta => {
+        const activeTrucksCount = data.trucks.filter(x => x.taPersonnel === ta.name).length;
+        const tripsMonitored = data.trips.filter(x => x.taPersonnel === ta.name).length;
+        return `
+          <tr>
+            <td><b>${ta.name}</b></td>
+            <td>${activeTrucksCount}</td>
+            <td>${tripsMonitored}</td>
+            <td>
+              <button class="btn secondary" style="padding:4px 8px; font-size:11px;" onclick="openTAModal('${ta.name}')">Edit</button>
+              <button class="btn danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTA('${ta.name}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('') || `<tr><td colspan="4" class="empty">No TA personnel added.</td></tr>`;
+    }
+
+    // Haulers
+    const haulerBody = document.getElementById('haulerBody');
+    if (haulerBody) {
+      haulerBody.innerHTML = data.haulers.map(h => {
+        const hTrips = data.trips.filter(t => t.hauler === h.name);
+        const activeTrucks = data.trucks.filter(t => t.hauler === h.name).length;
+        const avgG2B = fmtMinutes(average(hTrips.map(t => minutesBetween(t.goating, t.berth))));
+        const avgBW = fmtMinutes(average(hTrips.map(t => minutesBetween(t.berth, t.finished))));
+        const encName = encodeURIComponent(h.name);
+        return `
+          <tr>
+            <td><b>${h.name}</b></td>
+            <td>${h.coord || '—'}</td>
+            <td>${h.contact || '—'}</td>
+            <td>${activeTrucks}</td>
+            <td>${hTrips.length}</td>
+            <td>${avgG2B}</td>
+            <td>${avgBW}</td>
+            <td>
+              <button class="btn secondary" style="padding:4px 8px; font-size:11px;" onclick="editHauler('${encName}')">Edit</button>
+              <button class="btn danger" style="padding:4px 8px; font-size:11px;" onclick="deleteHauler('${encName}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('') || `<tr><td colspan="8" class="empty">No haulers configured.</td></tr>`;
+    }
+  }
+
+  document.getElementById('tripSearch')?.addEventListener('input', renderTripsTable);
+  document.getElementById('tripStatus')?.addEventListener('change', renderTripsTable);
+
+  function drawBarChart(canvasId, labels, values, title){
+    const canvas=document.getElementById(canvasId); if(!canvas)return;
+    const rect=canvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    if(!rect.width||!rect.height) return;
+    canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+    const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+    const w=rect.width,h=rect.height,pad={l:48,r:18,t:24,b:52};
+    ctx.clearRect(0,0,w,h);
+    const max=Math.max(...values.filter(v=>v!=null),1);
+    ctx.font='11px system-ui';ctx.fillStyle='#64748b';ctx.strokeStyle='#e2e8f0';
+    for(let i=0;i<=4;i++){let y=pad.t+(h-pad.t-pad.b)*i/4;let val=max*(1-i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmtMinutes(val),4,y+4)}
+    const bw=(w-pad.l-pad.r)/Math.max(labels.length,1)*.62;
+    labels.forEach((lab,i)=>{let v=values[i]||0;let x=pad.l+(w-pad.l-pad.r)/labels.length*i+(w-pad.l-pad.r)/labels.length*.19;let bh=(h-pad.t-pad.b)*v/max;ctx.fillStyle='#2563eb';ctx.fillRect(x,h-pad.b-bh,bw,bh);ctx.fillStyle='#334155';ctx.save();ctx.translate(x+bw/2,h-pad.b+14);ctx.rotate(-.45);ctx.textAlign='right';ctx.fillText(lab,0,0);ctx.restore();});
+    ctx.fillStyle='#0f172a';ctx.font='bold 13px system-ui';ctx.fillText(title,pad.l,pad.t-8);
+  }
+
+  function drawPieChart(canvasId, labels, values, title){
+    const canvas=document.getElementById(canvasId); if(!canvas)return;
+    const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+    if(!rect.width||!rect.height) return;
+    canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+    const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+    const w=rect.width,h=rect.height,cx=w*.38,cy=h*.52,r=Math.min(w*.28,h*.34);
+    const total=values.reduce((a,b)=>a+(b||0),0)||1;let start=-Math.PI/2;
+    ctx.clearRect(0,0,w,h);
+    values.forEach((v,i)=>{
+      const angle=(v||0)/total*Math.PI*2;
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+angle);ctx.closePath();
+      ctx.fillStyle=['#2563eb','#0d9488'][i%2];ctx.fill();start+=angle;
+    });
+    ctx.fillStyle='#0f172a';ctx.font='bold 13px system-ui';ctx.fillText(title,16,20);
+    ctx.font='12px system-ui';labels.forEach((l,i)=>{let y=58+i*28;ctx.fillStyle=['#2563eb','#0d9488'][i%2];ctx.fillRect(w*.68,y-10,12,12);ctx.fillStyle='#475569';ctx.fillText(`${l}: ${fmtMinutes(values[i])}`,w*.68+20,y);});
+  }
+
+  function analyticsDetailRows(rows){
+    return rows.map(x=>`<tr class="analytics-clickable" onclick="window.showTripDetails('${x.t.id}')">
+      <td>${x.t.id}</td><td><b>${x.t.plate}</b></td><td>${x.t.hauler}</td><td>${x.t.material}</td>
+      <td>${x.t.goating?fmtDate(x.t.goating):'—'}</td><td>${x.t.berth?fmtDate(x.t.berth):'—'}</td><td>${x.t.finished?fmtDate(x.t.finished):'—'}</td>
+      <td>${fmtMinutes(x.g)}</td><td>${fmtMinutes(x.b)}</td><td>${fmtMinutes(x.total)}</td>
+    </tr>`).join('');
+  }
+
+  window.showAnalyticsKPI = function(type){
+    const rows=getAnalyticsTrips().map(t=>({t,g:minutesBetween(t.goating,t.berth),b:minutesBetween(t.berth,t.finished),total:minutesBetween(t.goating,t.finished)}));
+    if(type==='TRIPS'){
+      document.getElementById('analyticsDetailTitle').textContent='All Analyzed Trips — Complete Details';
+      document.getElementById('analyticsDetailContent').innerHTML=`
+        <div class="cards" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="card"><div class="kpi-label">Total Trips</div><div class="kpi-value">${rows.length}</div></div>
+          <div class="card"><div class="kpi-label">Completed Trips</div><div class="kpi-value">${rows.filter(x=>x.t.finished).length}</div></div>
+          <div class="card"><div class="kpi-label">Active / Incomplete</div><div class="kpi-value">${rows.filter(x=>!x.t.finished).length}</div></div>
+        </div>
+        <div class="tablewrap" style="margin-top:18px"><table class="table">
+        <thead><tr><th>Trip</th><th>Truck</th><th>Hauler</th><th>Material</th><th>Goating→Berth</th><th>Berth & Unloading</th><th>Total Cycle</th></tr></thead>
+        <tbody>${rows.map(x=>`<tr class="analytics-clickable" onclick="window.showTripDetails('${x.t.id}')"><td>${x.t.id}</td><td><b>${x.t.plate}</b></td><td>${x.t.hauler}</td><td>${x.t.material}</td><td>${fmtMinutes(x.g)}</td><td>${fmtMinutes(x.b)}</td><td>${fmtMinutes(x.total)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">No trips available.</td></tr>'}</tbody>
+        </table></div>`;
+    } else {
+      const stage=type==='G2B'?'Goating → Berth':'Berth & Unloading';
+      window.showStageDetails(stage); return;
+    }
+    document.getElementById('analyticsDetailModal').classList.add('show');
+  };
+
+  window.showStageDetails = function(stage){
+    const rows=getAnalyticsTrips().map(t=>({t,g:minutesBetween(t.goating,t.berth),b:minutesBetween(t.berth,t.finished),total:minutesBetween(t.goating,t.finished)}));
+    let key=stage==='Goating → Berth'?'g':'b';
+    const filtered=rows.filter(x=>x[key]!=null).sort((a,b)=>b[key]-a[key]);
+    document.getElementById('analyticsDetailTitle').textContent=`${stage} — Detailed Truck Performance`;
+    document.getElementById('analyticsDetailContent').innerHTML=`
+      <div class="cards" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card"><div class="kpi-label">Average</div><div class="kpi-value">${fmtMinutes(average(filtered.map(x=>x[key])))}</div></div>
+        <div class="card"><div class="kpi-label">Longest</div><div class="kpi-value">${fmtMinutes(filtered.length?filtered[0][key]:null)}</div></div>
+        <div class="card"><div class="kpi-label">Trips with Data</div><div class="kpi-value">${filtered.length}</div></div>
+      </div>
+      <div class="tablewrap" style="margin-top:18px">
+        <table class="table">
+          <thead><tr><th>Trip</th><th>Truck</th><th>Hauler</th><th>Material</th><th>${stage}</th><th>Time Details</th></tr></thead>
+          <tbody>
+            ${filtered.map(x=>`<tr class="analytics-clickable" onclick="window.showTripDetails('${x.t.id}')">
+              <td>${x.t.id}</td><td><b>${x.t.plate}</b></td><td>${x.t.hauler}</td><td>${x.t.material}</td>
+              <td><b>${fmtMinutes(x[key])}</b></td>
+              <td>${stage==='Goating → Berth'?`${fmtDate(x.t.goating)} → ${fmtDate(x.t.berth)}`:`${fmtDate(x.t.berth)} → ${fmtDate(x.t.finished)}`}</td>
+            </tr>`).join('')||'<tr><td colspan="6" class="empty">No data available.</td></tr>'}
+          </tbody>
+        </table>
+      </div>`;
+    document.getElementById('analyticsDetailModal').classList.add('show');
+  };
+
+  window.showStageChartDetails = function(){
+    const rows=getAnalyticsTrips().map(t=>({t,g:minutesBetween(t.goating,t.berth),b:minutesBetween(t.berth,t.finished),total:minutesBetween(t.goating,t.finished)}));
+    document.getElementById('analyticsDetailTitle').textContent='Complete Waiting-Time Details by Truck';
+    document.getElementById('analyticsDetailContent').innerHTML=`<div class="tablewrap"><table class="table detail-table"><thead><tr><th>Trip</th><th>Truck</th><th>Hauler</th><th>Material</th><th>Goating Arrival</th><th>Berth Arrival</th><th>Unload Finish</th><th>Goating→Berth</th><th>Berth & Unload</th><th>Total Cycle</th></tr></thead><tbody>${analyticsDetailRows(rows)||'<tr><td colspan="10" class="empty">No data available.</td></tr>'}</tbody></table></div>`;
+    document.getElementById('analyticsDetailModal').classList.add('show');
+  };
+
+  window.showAverageChartDetails = function(){
+    const rows=getAnalyticsTrips().map(t=>({t,g:minutesBetween(t.goating,t.berth),b:minutesBetween(t.berth,t.finished),total:minutesBetween(t.goating,t.finished)}));
+    const stages=[['Goating → Berth',average(rows.map(x=>x.g))],['Berth & Unloading',average(rows.map(x=>x.b))]];
+    document.getElementById('analyticsDetailTitle').textContent='Average Waiting Time by Stage';
+    document.getElementById('analyticsDetailContent').innerHTML=`<div class="cards" style="grid-template-columns: repeat(2, 1fr);">${stages.map(x=>`<div class="card analytics-stage-card" onclick="window.showStageDetails('${x[0]}')"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${fmtMinutes(x[1])}</div><div style="font-size:11px;color:var(--muted);margin-top:8px">Click for details</div></div>`).join('')}</div><div class="tablewrap" style="margin-top:18px"><table class="table"><thead><tr><th>Stage</th><th>Average Time</th><th>Trips Included</th></tr></thead><tbody>${stages.map(x=>`<tr><td>${x[0]}</td><td>${fmtMinutes(x[1])}</td><td>${rows.length}</td></tr>`).join('')}</tbody></table></div>`;
+    document.getElementById('analyticsDetailModal').classList.add('show');
+  };
+
+  function renderAnalytics(){
+    let trips=getAnalyticsTrips();
+    const rows=trips.map(t=>{
+      let g=minutesBetween(t.goating,t.berth), b=minutesBetween(t.berth,t.finished), total=minutesBetween(t.goating,t.finished);
+      return {t,g,b,total};
+    });
+    document.getElementById('aTrips').textContent=rows.length;
+    document.getElementById('aG2B').textContent=fmtMinutes(average(rows.map(x=>x.g)));
+    document.getElementById('aBW').textContent=fmtMinutes(average(rows.map(x=>x.b)));
+    document.getElementById('analyticsBody').innerHTML=rows.map(x=>`<tr class="analytics-clickable" onclick="window.showTripDetails('${x.t.id}')"><td>${x.t.id}</td><td><b>${x.t.plate}</b></td><td>${x.t.hauler}</td><td>${x.t.material}</td><td>${fmtMinutes(x.g)}</td><td>${fmtMinutes(x.b)}</td><td>${fmtMinutes(x.total)}</td></tr>`).join('')||`<tr><td colspan="7" class="empty">No trip data available.</td></tr>`;
+    drawBarChart('stageChart',rows.map(x=>x.t.plate),rows.map(x=>x.g),'Waiting Time: Goating → Berth');
+    drawBarChart('avgChart',['Goating → Berth','Berth & Unloading'],[average(rows.map(x=>x.g)),average(rows.map(x=>x.b))],'Average Duration by Stage');
+    drawPieChart('pieChart',['Goating → Berth','Berth & Unloading'],[average(rows.map(x=>x.g)),average(rows.map(x=>x.b))],'Average Time Distribution');
+  }
+
+  function updateClock() {
+    const now = new Date();
+    const formattedDutyDate = now.toLocaleDateString([], { weekday: 'long' }) + ' | ' + now.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+    document.getElementById('dutyClock').textContent = `${formattedDutyDate} • ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`;
+    
+    const activeShift = getCurrentRealtimeShift();
+    document.getElementById('dutyShift').textContent = activeShift;
+    const masterShiftEl = document.getElementById('masterDutyShiftDisplay');
+    if(masterShiftEl) masterShiftEl.value = activeShift;
+
+    document.querySelectorAll('.stage-duration-cell').forEach(cell => {
+      const tripId = cell.dataset.tripId;
+      const t = data.trips.find(x => x.id === tripId);
+      if (t) cell.textContent = stageDuration(t);
+    });
+  }
+
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function getReplicaTimeCellClass(mins, type) {
+    if (mins == null || isNaN(mins)) return '';
+    if (type === 'waiting') {
+      if (mins <= 15) return 'cell-green-light';
+      if (mins <= 60) return 'cell-yellow';
+      if (mins <= 180) return 'cell-orange';
+      return 'cell-red';
+    } else {
+      if (mins <= 30) return 'cell-green-light';
+      if (mins <= 90) return 'cell-yellow';
+      return 'cell-orange';
+    }
+  }
+
+  function formatTimeOnly(isoStr) {
+    if (!isoStr) return '';
+    return new Date(isoStr).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+  }
+
+  function formatDateOnly(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}/${dd}/${yy}`;
+  }
+
+  function render() {
+    const now = new Date();
+    document.getElementById('today').textContent = now.toLocaleDateString([], {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    document.getElementById('dutyTA').textContent = data.currentDuty.ta || 'Geo';
+    document.getElementById('dutyShift').textContent = getCurrentRealtimeShift();
+
+    // System Unfinished + Today Finished Scope
+    let activeAll = data.trips.filter(t => !t.finished);
+    let doneToday = data.trips.filter(t => t.date === dateKey() && t.finished);
+
+    let counts = { goating: 0, berth: 0, done: doneToday.length, active: activeAll.length };
+
+    activeAll.forEach(t => {
+      let s = status(t);
+      if (s === 'WAITING FOR BERTH') counts.goating++;
+      else if (s === 'WAITING FOR UNLOADING') counts.berth++;
+    });
+
+    document.getElementById('kTotal').textContent = counts.active;
+    document.getElementById('kGoating').textContent = counts.goating;
+    document.getElementById('kBerth').textContent = counts.berth;
+    document.getElementById('kDone').textContent = counts.done;
+
+    // Active Highlight Sync for KPI Cards
+    document.querySelectorAll('.kpi-card').forEach(card => {
+      const filterVal = card.getAttribute('data-kpifilter');
+      if(filterVal === activeKpiFilter) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
+
+    document.getElementById('supActiveTrips').textContent = counts.active;
+    document.getElementById('supGoating').textContent = counts.goating;
+    document.getElementById('supBerth').textContent = counts.berth;
+    document.getElementById('supCompleted').textContent = counts.done;
+
+    let avgTurnaroundMins = 0;
+    if(doneToday.length > 0) {
+      let totalMins = doneToday.reduce((acc, t) => acc + (new Date(t.finished) - new Date(t.goating || t.berth)), 0) / doneToday.length;
+      avgTurnaroundMins = Math.round(totalMins / 60000);
+    }
+    document.getElementById('supAvgTurnaround').textContent = avgTurnaroundMins + ' mins';
+
+    let ex = activeAll.filter(t => getTripAnomaly(t) !== null);
+    document.getElementById('supDelayedTrips').textContent = ex.length;
+
+    let q = (document.getElementById('dashSearch').value || '').toLowerCase();
+    let f = activeKpiFilter;
+
+    let pool = (f === 'COMPLETED') ? doneToday : activeAll;
+    let live = pool.filter(t => {
+      let s = status(t);
+      return (f === 'ALL' || s === f) && [t.plate, t.hauler].join(' ').toLowerCase().includes(q);
+    });
+
+    document.getElementById('liveBody').innerHTML = live.length ? live.map(t => {
+      return `
+        <tr onclick="window.showTripDetails('${t.id}')" style="cursor:pointer">
+          <td><b>${t.plate}</b></td>
+          <td>${t.hauler}</td>
+          <td><span class="status ${statusClass(status(t))}">${status(t)}</span></td>
+          <td><b class="stage-duration-cell" data-trip-id="${t.id}">${stageDuration(t)}</b></td>
+          <td onclick="event.stopPropagation()">
+            ${actionButtons(t)}
+          </td>
+        </tr>`;
+    }).join('') : `<tr><td colspan="5" class="empty">No active trucks match criteria.</td></tr>`;
+
+    // Render Exceptions List on Dashboard
+    const exceptionsEl = document.getElementById('exceptions');
+    if (exceptionsEl) {
+      exceptionsEl.innerHTML = ex.length ? ex.map(t => {
+        const anomaly = getTripAnomaly(t);
+        return `
+          <div class="card" style="margin-bottom:10px; border-left:4px solid ${anomaly.level==='danger'?'var(--danger)':'var(--warn)'}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <b>${t.plate} (${t.hauler})</b>
+              <span class="${anomaly.level==='danger'?'badge-danger':'badge-warning'}">${anomaly.type}</span>
+            </div>
+            <div style="font-size:12px; color:var(--muted); margin-top:4px;">${anomaly.message}</div>
+            <div style="font-size:12px; margin-top:2px;"><b>Reason:</b> ${anomaly.reason}</div>
+          </div>
+        `;
+      }).join('') : `<div class="empty">No operational exceptions at this time.</div>`;
+    }
+
+    // Operational Log (Replica Table)
+    const replicaBody = document.getElementById('replicaTableBody');
+    if (replicaBody) {
+      const replicaTrips = data.trips;
+      if (replicaTrips.length === 0) {
+        replicaBody.innerHTML = `<tr><td colspan="9" class="empty">No entries available in operational log.</td></tr>`;
+      } else {
+        replicaBody.innerHTML = replicaTrips.map(t => {
+          const dtStr = formatDateOnly(t.goating || t.date);
+          const plate = t.plate || '';
+          const item = t.material || '';
+          const arrGoating = formatTimeOnly(t.goating);
+          const arrBerth = formatTimeOnly(t.berth);
+          
+          let waitingMins = minutesBetween(t.goating, t.berth);
+          if (waitingMins == null && t.goating && !t.berth) {
+            waitingMins = Math.floor((new Date() - new Date(t.goating)) / 60000);
+          }
+          const waitingTimeStr = waitingMins != null ? dur(waitingMins * 60000) : '';
+          const waitingClass = getReplicaTimeCellClass(waitingMins, 'waiting');
+
+          const doneUnload = formatTimeOnly(t.finished);
+          let unloadMins = minutesBetween(t.berth, t.finished);
+          if (unloadMins == null && t.berth && !t.finished) {
+            unloadMins = Math.floor((new Date() - new Date(t.berth)) / 60000);
+          }
+          const unloadTimeStr = unloadMins != null ? dur(unloadMins * 60000) : '';
+          const unloadClass = getReplicaTimeCellClass(unloadMins, 'unload');
+
+          const anomaly = getTripAnomaly(t);
+          let remarks = '';
+          if (anomaly) {
+            remarks = anomaly.reason;
+          } else if (t.finished) {
+            remarks = 'Completed successfully';
+          }
+
+          return `
+            <tr>
+              <td>${dtStr}</td>
+              <td><b>${plate}</b></td>
+              <td>${item}</td>
+              <td>${arrGoating}</td>
+              <td>${arrBerth}</td>
+              <td class="${waitingClass}">${waitingTimeStr}</td>
+              <td>${doneUnload}</td>
+              <td class="${unloadClass}">${unloadTimeStr}</td>
+              <td style="text-align:left;">${remarks}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    let avg = (field) => doneToday.length ? dur(doneToday.reduce((a, t) => a + (new Date(t[field]) - new Date(t[field === 'berth' ? 'goating' : 'berth'])), 0) / doneToday.length) : '—';
+
+    document.getElementById('metrics').innerHTML = `
+      <div class="card"><div class="kpi-label">Avg Goating → Berth</div><div class="kpi-value">${avg('berth')}</div></div>
+      <div class="card" style="margin-top:12px"><div class="kpi-label">Avg Berth & Unloading</div><div class="kpi-value">${avg('finished')}</div></div>`;
+    
+    // RENDER TRUCKS WAITING TIME SUMMARY WIDGET (INCLUDES ALL UNFINISHED TRIPS ACROSS SHIFTS)
+    const waitingSummaryContainer = document.getElementById('waitingTimeSummaryWidget');
+    if (waitingSummaryContainer) {
+      let buckets = {
+        '0-30': [],
+        '30-60': [],
+        '1-2h': [],
+        '3h+': []
+      };
+      
+      activeAll.forEach(t => {
+        let stTime = stageStart(t);
+        if(!stTime) return;
+        let diffMins = (now - new Date(stTime)) / 60000;
+        
+        if (diffMins >= 180) buckets['3h+'].push({...t, diffMins});
+        else if (diffMins >= 60) buckets['1-2h'].push({...t, diffMins});
+        else if (diffMins >= 30) buckets['30-60'].push({...t, diffMins});
+        else buckets['0-30'].push({...t, diffMins});
+      });
+
+      let totalWaitingCount = activeAll.length;
+
+      waitingSummaryContainer.innerHTML = `
+        <div class="replica-widget-card" id="trucksWaitingTimeSummaryCard">
+          <div class="replica-header">
+            <div class="replica-title-area">
+              <div class="replica-icon-box">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </div>
+              <div>
+                <h3 class="replica-title">Trucks Waiting Time Summary</h3>
+                <div class="replica-subtitle">Real-time queue duration breakdown across active port stages</div>
+              </div>
+            </div>
+            <div class="replica-meta-group">
+              <div class="replica-total-badge">
+                <div class="replica-total-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                </div>
+                <div>
+                  <div class="replica-total-num">${totalWaitingCount}</div>
+                  <div class="replica-total-text">Active Queue</div>
+                </div>
+              </div>
+              <button class="btn secondary" id="widgetDownloadBtn" onclick="window.downloadWaitingTimeSummaryHD()" style="padding: 8px 14px; font-weight: 700;">
+                📥 HD Photo
+              </button>
+            </div>
+          </div>
+
+          <!-- Tier Cards -->
+          <div class="tier-card tier-green">
+            <div class="tier-top">
+              <div class="tier-info">
+                <div class="tier-dot-icon">✓</div>
+                <div>
+                  <h4 class="tier-title">0 — 30 Mins (Normal Flow)</h4>
+                  <p class="tier-desc">Moving within optimal operational thresholds</p>
+                </div>
+              </div>
+              <div class="tier-badge">${buckets['0-30'].length} Trucks</div>
+            </div>
+            ${buckets['0-30'].length > 0 ? `
+              <div class="tier-sub-list">
+                ${buckets['0-30'].map(tr => `
+                  <div class="tier-sub-row">
+                    <div>
+                      <div class="tier-sub-plate">${tr.plate}</div>
+                      <div class="tier-sub-hauler">${tr.hauler} • ${tr.material}</div>
+                    </div>
+                    <div style="font-weight:700; color:#047857; font-size:13px;">${dur(tr.diffMins * 60000)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="tier-card tier-yellow">
+            <div class="tier-top">
+              <div class="tier-info">
+                <div class="tier-dot-icon">⚡</div>
+                <div>
+                  <h4 class="tier-title">30 — 60 Mins (Moderate Queue)</h4>
+                  <p class="tier-desc">Monitoring required for potential delay</p>
+                </div>
+              </div>
+              <div class="tier-badge">${buckets['30-60'].length} Trucks</div>
+            </div>
+            ${buckets['30-60'].length > 0 ? `
+              <div class="tier-sub-list">
+                ${buckets['30-60'].map(tr => `
+                  <div class="tier-sub-row">
+                    <div>
+                      <div class="tier-sub-plate">${tr.plate}</div>
+                      <div class="tier-sub-hauler">${tr.hauler} • ${tr.material}</div>
+                    </div>
+                    <div style="font-weight:700; color:#b45309; font-size:13px;">${dur(tr.diffMins * 60000)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="tier-card tier-orange">
+            <div class="tier-top">
+              <div class="tier-info">
+                <div class="tier-dot-icon">⚠️</div>
+                <div>
+                  <h4 class="tier-title">1 — 2 Hours (Extended Wait)</h4>
+                  <p class="tier-desc">Queue congestion affecting turnaround</p>
+                </div>
+              </div>
+              <div class="tier-badge">${buckets['1-2h'].length} Trucks</div>
+            </div>
+            ${buckets['1-2h'].length > 0 ? `
+              <div class="tier-sub-list">
+                ${buckets['1-2h'].map(tr => `
+                  <div class="tier-sub-row">
+                    <div>
+                      <div class="tier-sub-plate">${tr.plate}</div>
+                      <div class="tier-sub-hauler">${tr.hauler} • ${tr.material}</div>
+                    </div>
+                    <div style="font-weight:700; color:#c2410c; font-size:13px;">${dur(tr.diffMins * 60000)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="tier-card tier-red">
+            <div class="tier-top">
+              <div class="tier-info">
+                <div class="tier-dot-icon">🚨</div>
+                <div>
+                  <h4 class="tier-title">3+ Hours (Critical Delay)</h4>
+                  <p class="tier-desc">Severe bottleneck requiring immediate escalation</p>
+                </div>
+              </div>
+              <div class="tier-badge">${buckets['3h+'].length} Trucks</div>
+            </div>
+            ${buckets['3h+'].length > 0 ? `
+              <div class="tier-sub-list">
+                ${buckets['3h+'].map(tr => `
+                  <div class="tier-sub-row">
+                    <div>
+                      <div class="tier-sub-plate">${tr.plate}</div>
+                      <div class="tier-sub-hauler">${tr.hauler} • ${tr.material}</div>
+                    </div>
+                    <div class="priority-tag">Critical Queue</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+
+        </div>
+      `;
+    }
+
+    renderMasterData();
+    renderTripsTable();
+    renderEventLog();
+  }
+
+  render();
+});
+</script>
+</body>
+</html>
